@@ -34,8 +34,7 @@ router = routers.SimpleRouter(trailing_slash=False)
 router.register(r"auth/users", UserDetailViewSet, basename="users")
 router.register(r"businesses", BusinessViewSet, basename="shops")
 router.register(
-    # r"businesses/(?P<business_pk>[\d]+)/products",
-    r"businesses/([a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12})/products",
+    r"businesses/(?P<business_pk>[\d]+)/products",
     ProductViewSet,
     basename="products",
 )

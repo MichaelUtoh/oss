@@ -21,9 +21,12 @@ class BusinessBasicSerializer(serializers.ModelSerializer):
 
 
 class BusinessListSerializer(serializers.ModelSerializer):
+    owner = serializers.SerializerMethodField()
+
     class Meta:
         model = Business
         fields = [
+            "id",
             "owner",
             "name",
             "phone",
@@ -36,6 +39,9 @@ class BusinessListSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def get_owner(self, obj):
+        return obj.owner.get_full_name()
 
 
 class BusinessCreateUpdateSerializer(serializers.ModelSerializer):

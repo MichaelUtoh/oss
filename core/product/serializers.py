@@ -59,7 +59,9 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         return ProductListSerializer(instance=instance, context=self.context).data
 
 
-class ProductUploadSerializer(serializers.Serializer):
-    file = serializers.FileField()
+class OrderSerializer(serializers.Serializer):
+    product = serializers.CharField()
+    quantity = serializers.CharField()
+    code = serializers.CharField()
 
 

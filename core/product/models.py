@@ -1,4 +1,3 @@
-from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.conf import settings
 
@@ -36,3 +35,18 @@ class Product(models.Model):
     def __str__(self) -> str:
         return self.name
 
+
+class OrderItem(models.Model):
+    customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="in_cart")
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="in_cart")
+    quantity = models.IntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def get_item_price(self):
+        return self.product.price * self.quantity
+
+
+class Cart(models.Model):
+    items = models.ManyToManyField(OrderItem)
+    code = models.CharField(max_length=15)
+    total = models.IntegerField()
