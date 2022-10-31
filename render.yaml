@@ -1,0 +1,20 @@
+databases:
+  - name: onyx
+    databaseName: onyx
+    user: oss_user
+
+services:
+  - type: web
+    name: oynx
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn oynx.wsgi:application"
+    envVars:
+      - key:  DATABASE_BASE
+        fromDatabase:
+        name: onyx
+        property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: WEB_CONCURRENCY
+        value: 4
