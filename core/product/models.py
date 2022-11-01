@@ -37,10 +37,20 @@ class Product(models.Model):
 
 
 class OrderItem(models.Model):
-    customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="in_cart")
-    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="in_cart")
+    customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="in_cart"
+    )
+    product = models.ForeignKey(
+        Product, on_delete=models.PROTECT, related_name="in_cart"
+    )
     quantity = models.IntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ["customer", "product"]
+
+    def __str__(self) -> str:
+        return f"{self.product} - {self.quantity}"
 
     def get_item_price(self):
         return self.product.price * self.quantity

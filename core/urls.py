@@ -12,6 +12,7 @@ from core.accounts.api import UserDetailViewSet, UserLoginAPIView, UserRegisterA
 from core.business.api import BusinessViewSet, CouponViewSet
 from core.marketing.api import EmailViewSet
 from core.product.api import (
+    OrderItemsViewSet,
     ProductBasicViewSet,
     ProductViewSet,
 )
@@ -24,7 +25,7 @@ schema_view = get_schema_view(
         description="Test description",
         terms_of_service="https://www.google.com/policies/terms/",
         contact=openapi.Contact(email="michaelutoh21@gmail.com"),
-        license=openapi.License(name="BSD License"),
+        # license=openapi.License(name="BSD License"),
     ),
     public=True,
     permission_classes=[permissions.AllowAny],
@@ -45,7 +46,11 @@ router.register(
 )
 router.register(r"marketing", EmailViewSet, basename="marketing")
 router.register(r"products", ProductBasicViewSet, basename="products")
-# router.register(r"orders", OrderViewSet, basename="orders")
+router.register(
+    r"products/(?P<product_pk>[\d]+)/add_to_cart",
+    OrderItemsViewSet,
+    basename="orders",
+)
 urlpatterns = router.urls
 
 

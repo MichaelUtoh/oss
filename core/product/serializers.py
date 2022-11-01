@@ -1,7 +1,8 @@
 from rest_framework import serializers
+from core.accounts.serializers import UserDetailsSerializer
 from core.business.serializers import BusinessBasicSerializer
 
-from core.product.models import Product
+from core.product.models import OrderItem, Product
 
 
 class ProductQtySerializer(serializers.Serializer):
@@ -59,9 +60,29 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         return ProductListSerializer(instance=instance, context=self.context).data
 
 
-class OrderSerializer(serializers.Serializer):
-    product = serializers.CharField()
-    quantity = serializers.CharField()
-    code = serializers.CharField()
+class OrderItemListSerializer(serializers.ModelSerializer):
+    price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OrderItem
+        fields = ["id", "customer", "product", "quantity", "price", "created_at"]
+
+    def get_price(self, obj):
+        return obj.get_item_price()
 
 
+class OrderItemCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderItem
+        fields = ["quantity"]
+
+    def save(self):
+        item = OrderItem.objects.create(
+            customer=self.context["customer"],
+            product=self.context["product"],
+            quantity=self.validated_data["quantity"],
+        )
+        return item
+
+    def to_representation(self, instance):
+        return OrderItemListSerializer(instance=instance, context=self.context).data

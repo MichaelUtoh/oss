@@ -1,6 +1,7 @@
 import csv
 import io
 import math
+from django.shortcuts import get_object_or_404
 import pandas as pd
 
 from django.db.models import Q
@@ -22,8 +23,10 @@ from core.config.permissions import (
     CustomerPermission,
 )
 from core.config.schema import get_auto_schema_class_by_tags
-from core.product.models import Product
+from core.product.models import OrderItem, Product
 from core.product.serializers import (
+    OrderItemCreateSerializer,
+    OrderItemListSerializer,
     ProductBasicSerializer,
     ProductCreateUpdateSerializer,
     ProductListSerializer,
@@ -201,3 +204,28 @@ class ProductBasicViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = ProductListSerializer
     permission_classes = [CustomerPermission]
 
+
+class OrderItemsViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+    queryset = OrderItem.objects.all()
+    swagger_schema = get_auto_schema_class_by_tags(["products"])
+    permission_classes = [CustomerPermission]
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return OrderItemCreateSerializer
+
+    @swagger_auto_schema(
+        request_body=OrderItemCreateSerializer,
+        responses={status.HTTP_200_OK: OrderItemListSerializer},
+    )
+    def create(self, request, *args, **kwargs):
+        customer, product = request.user, get_object_or_404(
+            Product, pk=self.kwargs["product_pk"]
+        )
+        serializer = self.get_serializer(
+            data=request.data, context={"customer": customer, "product": product}
+        )
+        serializer.is_valid(raise_exception=True)
+        order_item = serializer.save()
+        data = self.get_serializer(instance=order_item).data
+        return Response(data=data)
