@@ -44,6 +44,12 @@ class ProductBasicSerializer(serializers.ModelSerializer):
         ]
 
 
+class ProductInCartSerializer(serializers.Serializer):
+    class Meta:
+        model = Product
+        fields = ["name", "product_no", "description"]
+
+
 class ProductCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
@@ -61,6 +67,7 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
 
 
 class OrderItemListSerializer(serializers.ModelSerializer):
+    product = ProductInCartSerializer()
     price = serializers.SerializerMethodField()
 
     class Meta:
@@ -72,11 +79,27 @@ class OrderItemListSerializer(serializers.ModelSerializer):
 
 
 class OrderItemCreateSerializer(serializers.ModelSerializer):
+    quantity = serializers.IntegerField(default=1)
+
     class Meta:
         model = OrderItem
         fields = ["quantity"]
 
     def save(self):
+        existing_item = OrderItem.objects.filter(
+            customer=self.context["customer"],
+            product=self.context["product"],
+        ).exists()
+
+        if existing_item:
+            item = OrderItem.objects.filter(
+                customer=self.context["customer"],
+                product=self.context["product"],
+            ).first()
+            item.quantity = self.validated_data["quantity"]
+            item.save(update_fields=["quantity"])
+            return item
+
         item = OrderItem.objects.create(
             customer=self.context["customer"],
             product=self.context["product"],
