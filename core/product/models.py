@@ -36,6 +36,17 @@ class Product(models.Model):
         return self.name
 
 
+class ProductFavorite(models.Model):
+    product = models.ForeignKey(
+        Product, on_delete=models.PROTECT, related_name="favorites_count"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="favorite_products",
+    )
+
+
 class OrderItem(models.Model):
     customer = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="in_cart"

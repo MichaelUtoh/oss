@@ -2,7 +2,7 @@ from rest_framework import serializers
 from core.accounts.serializers import UserDetailsSerializer
 from core.business.serializers import BusinessBasicSerializer
 
-from core.product.models import OrderItem, Product
+from core.product.models import Cart, OrderItem, Product
 
 
 class ProductQtySerializer(serializers.Serializer):
@@ -44,10 +44,12 @@ class ProductBasicSerializer(serializers.ModelSerializer):
         ]
 
 
-class ProductInCartSerializer(serializers.Serializer):
+class ProductInCartSerializer(serializers.ModelSerializer):
+    price = serializers.IntegerField()
+
     class Meta:
         model = Product
-        fields = ["name", "product_no", "description"]
+        fields = ["name", "price", "product_no", "description"]
 
 
 class ProductCreateUpdateSerializer(serializers.ModelSerializer):
@@ -109,3 +111,20 @@ class OrderItemCreateSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         return OrderItemListSerializer(instance=instance, context=self.context).data
+
+
+class CartListSerializer(serializers.Serializer):
+    customer = serializers.SerializerMethodField()
+    products = serializers.SerializerMethodField()
+
+    def get_customer(self, obj):
+        return
+
+    def get_items(self, obj):
+        return
+
+
+class CartCreateUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cart
+        fields = ["items"]

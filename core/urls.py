@@ -12,9 +12,11 @@ from core.accounts.api import UserDetailViewSet, UserLoginAPIView, UserRegisterA
 from core.business.api import BusinessViewSet, CouponViewSet
 from core.marketing.api import EmailViewSet
 from core.product.api import (
+    CartViewSet,
     OrderItemsViewSet,
     ProductBasicViewSet,
     ProductViewSet,
+    ProductFavoriteViewSet,
 )
 
 
@@ -33,6 +35,7 @@ schema_view = get_schema_view(
 
 router = routers.SimpleRouter(trailing_slash=False)
 router.register(r"auth/users", UserDetailViewSet, basename="users")
+router.register(r"auth/users/(?P<user_pk>[\d+]/my_cart)", CartViewSet, basename="cart")
 router.register(r"businesses", BusinessViewSet, basename="shops")
 router.register(
     r"businesses/(?P<business_pk>[\d]+)/products",
@@ -50,6 +53,11 @@ router.register(
     r"products/(?P<product_pk>[\d]+)/add_to_cart",
     OrderItemsViewSet,
     basename="orders",
+)
+router.register(
+    r"products/(?P<product_pk>[\d]+)/toggle_favorite",
+    ProductFavoriteViewSet,
+    basename="favorite",
 )
 urlpatterns = router.urls
 

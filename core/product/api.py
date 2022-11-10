@@ -23,8 +23,10 @@ from core.config.permissions import (
     CustomerPermission,
 )
 from core.config.schema import get_auto_schema_class_by_tags
-from core.product.models import OrderItem, Product
+from core.product.models import Cart, OrderItem, Product, ProductFavorite
 from core.product.serializers import (
+    CartCreateUpdateSerializer,
+    CartListSerializer,
     OrderItemCreateSerializer,
     OrderItemListSerializer,
     ProductBasicSerializer,
@@ -229,3 +231,54 @@ class OrderItemsViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         order_item = serializer.save()
         data = self.get_serializer(instance=order_item).data
         return Response(data=data)
+
+
+class ProductFavoriteViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+    queryset = ProductFavorite.objects.all()
+    swagger_schema = get_auto_schema_class_by_tags(["products"])
+    permission_classes = [CustomerPermission]
+
+    @swagger_auto_schema(
+        request_body=None,
+        responses={status.HTTP_200_OK: None},
+    )
+    def create(self, request, *args, **kwargs):
+        product = get_object_or_404(Product, pk=self.kwargs["product_pk"])
+
+        if ProductFavorite.objects.filter(user=request.user, product=product).exists():
+            ProductFavorite.objects.filter(user=request.user, product=product).delete()
+            return Response(status=status.HTTP_200_OK)
+
+        ProductFavorite.objects.create(user=request.user, product=product)
+        return Response(status=status.HTTP_200_OK)
+
+
+class CartViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    queryset = Cart.objects.all()
+    swagger_schema = get_auto_schema_class_by_tags(["carts"])
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return CartCreateUpdateSerializer
+
+    #     if self.action == "list":
+    #         return CartListSerializer
+
+    @swagger_auto_schema(
+        request_body=None,
+        responses={status.HTTP_200_OK: CartListSerializer}
+    )
+    @action(detail=False, methods=["get"])
+    def my_cart(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        request_body=CartCreateUpdateSerializer,
+        responses={status.HTTP_201_CREATED: CartListSerializer},
+    )
+    @action(detail=False, methods=["post"])
+    def checkout_cart(self, request, *args, **kwargs):
+        # new_cart = Cart.objects.create(
+
+        # )
+        return Response(status=status.HTTP_201_CREATED)
