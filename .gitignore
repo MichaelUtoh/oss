@@ -158,7 +158,7 @@ dmypy.json
 
 products.csv
 script.py
-script.json
+notes.py
 
 # Pyre type checker
 .pyre/

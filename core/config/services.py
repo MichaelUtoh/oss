@@ -1,4 +1,6 @@
 import functools
+from uuid import uuid4
+
 from django.http.response import JsonResponse
 
 from rest_framework import viewsets
@@ -19,3 +21,7 @@ def filter_http_method_names(method_list: list):
         for method in viewsets.ModelViewSet.http_method_names
         if method not in method_list
     ]
+
+
+def generate_order_code():
+    return str(uuid4()).upper()[:10]

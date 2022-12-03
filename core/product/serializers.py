@@ -1,7 +1,12 @@
+from django.db import transaction
+from django.db.models.functions import JSONObject
+
 from rest_framework import serializers
+
 from core.accounts.serializers import UserDetailsSerializer
 from core.business.serializers import BusinessBasicSerializer
-
+from core.config.serializers import IdListSerializer
+from core.config.utils import generate_code
 from core.product.models import Cart, OrderItem, Product
 
 
@@ -113,18 +118,71 @@ class OrderItemCreateSerializer(serializers.ModelSerializer):
         return OrderItemListSerializer(instance=instance, context=self.context).data
 
 
+class ItemBasicSerializer(serializers.Serializer):
+    name = serializers.CharField(source="product__name")
+    price = serializers.FloatField(source="product__price")
+    tax = serializers.IntegerField(source="product__tax")
+    quantity = serializers.IntegerField()
+
+
 class CartListSerializer(serializers.Serializer):
     customer = serializers.SerializerMethodField()
-    products = serializers.SerializerMethodField()
+    items = ItemBasicSerializer()
+    total = serializers.SerializerMethodField()
+
+    def get_queryset(self):
+        customer = self.context["customer"]
+        return Cart.objects.filter(items__customer=customer)
 
     def get_customer(self, obj):
-        return
+        return self.context["customer"].get_full_name()
 
     def get_items(self, obj):
-        return
+        # return self.get_queryset()[0].items.all().values("product__name", "product__price", "product__tax", "quantity")
+        qs = self.get_queryset()[0].items.all()
+        values = []
+
+        for item in qs:
+            print(item)
+        #     item.annotate(json_object=JSONObject(
+        #         name="product__name",
+        #         price="product__price",
+        #         tax="product__tax",
+        #         quantity="quantity"
+        #     ))
+        #     values.append(item.json_object)
+        
+        return values
+
+    def get_total(self, obj):
+        return sum([i.get_item_price() for i in self.get_queryset()[0].items.all()])
+
+    # TODO Calculate added Tax for Items in cart
 
 
 class CartCreateUpdateSerializer(serializers.ModelSerializer):
+    items = IdListSerializer
+
     class Meta:
         model = Cart
         fields = ["items"]
+
+    def save(self):
+        with transaction.atomic():
+            mssg = "Add products to cart before proceeding"
+            cart_exists = Cart.objects.filter(items__customer=self.context["customer"])
+            if cart_exists:
+                raise serializers.ValidationError({"detail": "You have a created Cart"})
+
+            print()
+            for i in self.validated_data["items"]:
+                if not i.customer == self.context["customer"]:
+                    raise serializers.ValidationError({"detail": mssg})
+            
+            cart = Cart.objects.create(
+                code=generate_code(),
+                total=sum([i.get_item_price() for i in self.validated_data["items"]])
+            )
+            for i in self.validated_data["items"]:
+                cart.items.add(i.id)
+            return cart

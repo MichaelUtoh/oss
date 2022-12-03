@@ -1,20 +1,29 @@
 import csv
 import io
 import math
-from django.shortcuts import get_object_or_404
 import pandas as pd
 
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from pyqrcode import QRCode
-from rest_framework import generics, mixins, parsers, serializers, status, viewsets
+from rest_framework import (
+    filters,
+    generics,
+    mixins,
+    parsers,
+    serializers,
+    status,
+    viewsets,
+)
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from core.accounts.models import User
 from core.business.models import Business
 from core.config.choices import UserType
 from core.config.permissions import (
@@ -205,6 +214,8 @@ class ProductBasicViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = Product.objects.all().order_by("-name")
     serializer_class = ProductListSerializer
     permission_classes = [CustomerPermission]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["name", "category", "description" "product_no"]
 
 
 class OrderItemsViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
@@ -253,32 +264,36 @@ class ProductFavoriteViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         return Response(status=status.HTTP_200_OK)
 
 
-class CartViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+class CartViewSet(viewsets.GenericViewSet):
     queryset = Cart.objects.all()
-    swagger_schema = get_auto_schema_class_by_tags(["carts"])
+    swagger_schema = get_auto_schema_class_by_tags(["cart"])
 
     def get_serializer_class(self):
-        if self.action == "create":
+        if self.action == "create" or self.action == "update":
             return CartCreateUpdateSerializer
-
-    #     if self.action == "list":
-    #         return CartListSerializer
+        if self.action == "list":
+            return CartListSerializer
 
     @swagger_auto_schema(
-        request_body=None,
-        responses={status.HTTP_200_OK: CartListSerializer}
+        request_body=None, responses={status.HTTP_200_OK: CartListSerializer}
     )
-    @action(detail=False, methods=["get"])
-    def my_cart(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_200_OK)
+    def list(self, request, *args, **kwargs):
+        user = get_object_or_404(User, pk=self.kwargs["user_pk"])
+        serializer = self.get_serializer(data=request.data, context={"customer": user})
+        serializer.is_valid(raise_exception=True)
+        # cart = Cart.objects.filter(items__customer=user)
+        # print(cart)
+        # data = self.get_serializer(cart).data
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         request_body=CartCreateUpdateSerializer,
         responses={status.HTTP_201_CREATED: CartListSerializer},
     )
-    @action(detail=False, methods=["post"])
-    def checkout_cart(self, request, *args, **kwargs):
-        # new_cart = Cart.objects.create(
-
-        # )
-        return Response(status=status.HTTP_201_CREATED)
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        serializer = self.get_serializer(data=request.data, context={"customer": user})
+        serializer.is_valid(raise_exception=True)
+        cart = serializer.save()
+        data = CartListSerializer(cart).data
+        return Response(data=data, status=status.HTTP_201_CREATED)

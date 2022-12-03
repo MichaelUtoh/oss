@@ -71,3 +71,7 @@ class Cart(models.Model):
     items = models.ManyToManyField(OrderItem)
     code = models.CharField(max_length=15)
     total = models.IntegerField()
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+
+    def __str__(self) -> str:
+        return self.code

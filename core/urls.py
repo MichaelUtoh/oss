@@ -35,7 +35,7 @@ schema_view = get_schema_view(
 
 router = routers.SimpleRouter(trailing_slash=False)
 router.register(r"auth/users", UserDetailViewSet, basename="users")
-router.register(r"auth/users/(?P<user_pk>[\d+]/my_cart)", CartViewSet, basename="cart")
+router.register(r"auth/users/(?P<user_pk>[\d]+)/cart", CartViewSet, basename="cart")
 router.register(r"businesses", BusinessViewSet, basename="shops")
 router.register(
     r"businesses/(?P<business_pk>[\d]+)/products",
