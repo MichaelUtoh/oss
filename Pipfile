@@ -1,0 +1,24 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+fastapi = "*"
+uvicorn = "*"
+passlib = "*"
+pyjwt = "*"
+bcrypt = "*"
+black = "*"
+python-decouple = "*"
+geopy = "*"
+email-validator = "*"
+fastapi-sqlalchemy = "*"
+alembic = "*"
+psycopg2-binary = "*"
+python-dotenv = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
