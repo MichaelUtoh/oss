@@ -9,6 +9,6 @@ class Product(SQLModel, table=True):
     name: str
     description: Optional[str]
     price: float
-    timestamp: Optional[datetime] = None
+    timestamp: Optional[datetime] = datetime.now()
 
     business_id: Optional[int] = Field(default=None, foreign_key="product.id")
