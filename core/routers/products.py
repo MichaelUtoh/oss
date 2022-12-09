@@ -1,6 +1,8 @@
+import csv
+import codecs
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
 from sqlmodel import select, Session
 
 from core.config.auth import AuthHandler
@@ -30,8 +32,48 @@ def products(session: Session = Depends(get_session)):
         return session.exec(statement).all()
 
 
-# , response_model=ProductListSchema
-@router.post("/products")
+@router.post("/products/batch_upload")
+def batch_upload(
+    business_id: int,
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+):
+    with session:
+        try:
+            statement = select(Business).where(Business.id == business_id)
+            business = session.exec(statement).one()
+        except:
+            msg = "Business ID does not exist."
+            raise HTTPException(status_code=404, detail=msg)
+
+    if not file.filename.endswith(".csv"):
+        msg = "File type must be CSV"
+        raise HTTPException(status_code=404, detail=msg)
+
+    csvReader = csv.DictReader(codecs.iterdecode(file.file, "utf-8"))
+    data = {}
+    for data in csvReader:
+        print(data)
+        with session:
+            product = Product(
+                business_id=business_id,
+                name=data["Name"],
+                product_no=data["Product No."],
+                description=data["Description"],
+                category=data["Category"],
+                tax=data["Tax"],
+                unit=data["Unit"],
+                price=data["Price"],
+            )
+            session.add(product)
+            session.commit()
+            session.refresh(product)
+
+    file.file.close()
+    return {"detail": "Files uploaded successfully"}
+
+
+@router.post("/products", response_model=ProductListSchema)
 def products(
     *, session: Session = Depends(get_session), data: ProductCreateUpdateSchema
 ):
@@ -44,7 +86,6 @@ def products(
         except:
             raise HTTPException(status_code=404, detail="Business ID does not exist.")
 
-
         try:
             statement_2 = select(Product).where(Product.name == data.name)
             product_exists = session.exec(statement_2).one()
@@ -52,7 +93,9 @@ def products(
             pass
 
         if product_exists:
-            raise HTTPException(status_code=404, detail="Product with same name already exists.")
+            raise HTTPException(
+                status_code=404, detail="Product with same name already exists."
+            )
 
         new_product = Product(**data.dict())
         session.add(new_product)

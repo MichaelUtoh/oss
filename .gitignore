@@ -4,6 +4,8 @@ email.css
 notes.py
 script.py
 
+media/
+
 .DS_Store
 __pycache__/
 *.py[cod]
