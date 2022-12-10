@@ -24,14 +24,12 @@ def my_products(id: int, session: Session = Depends(get_session)):
         except:
             raise HTTPException(status_code=404, detail="Business ID does not exist.")
 
-
         statement_2 = select(Product).where(Product.business_id == business.id)
         products = session.exec(statement_2).all()
         return products
 
 
-
-@router.get("/{id}", response_model=BusinessListSchema)
+@router.get("/business/{id}", response_model=BusinessListSchema)
 def business(id: int, session: Session = Depends(get_session)):
     with session:
         try:
@@ -45,9 +43,7 @@ def business(id: int, session: Session = Depends(get_session)):
 @router.get("/business", response_model=List[BusinessListSchema])
 def business(session: Session = Depends(get_session)):
     with session:
-        statement = select(Business)
-        businesses = session.exec(statement).all()
-        return businesses
+        return session.exec(select(Business)).all()
 
 
 @router.post("/business", response_model=BusinessListSchema)

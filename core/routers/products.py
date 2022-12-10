@@ -2,14 +2,20 @@ import csv
 import codecs
 from typing import List
 
+import cloudinary
+import cloudinary.uploader
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
 from sqlmodel import select, Session
 
 from core.config.auth import AuthHandler
 from core.config.database import get_session
 from core.models.businesses import Business
-from core.models.products import Product
-from core.schemas.products import ProductCreateUpdateSchema, ProductListSchema
+from core.models.products import Product, ProductImage
+from core.schemas.products import (
+    ProductCreateUpdateSchema,
+    ProductListSchema,
+    ProductImageListSchema,
+)
 from core.schemas.utils import IdListSchema
 
 
@@ -20,16 +26,18 @@ router = APIRouter(tags=["products"])
 @router.get("/products/{id}", response_model=ProductListSchema)
 def products(id: int, session: Session = Depends(get_session)):
     with session:
-        statement = select(Product).where(Product.id == id)
-        product = session.exec(statement).one()
+        try:
+            statement = select(Product).where(Product.id == id)
+            product = session.exec(statement).one()
+        except:
+            raise HTTPException(status_code=404, detail="Product ID does not exist")
         return product
 
 
 @router.get("/products", response_model=List[ProductListSchema])
 def products(session: Session = Depends(get_session)):
     with session:
-        statement = select(Product)
-        return session.exec(statement).all()
+        return session.exec(select(Product)).all()
 
 
 @router.post("/products/batch_upload")
@@ -132,3 +140,39 @@ def products(
         session.commit()
         session.refresh(product)
         return product
+
+
+@router.get("/products/{id}/images", response_model=List[ProductImageListSchema])
+def get_product_images(id: int, session: Session = Depends(get_session)):
+    with session:
+        try:
+            statement = select(Product).where(Product.id == id)
+            product = session.exec(statement).one()
+        except:
+            raise HTTPException(status_code=404, detail="Product ID not found.")
+
+        statement_2 = select(ProductImage).where(ProductImage.product_id == product.id)
+        product_images = session.exec(statement_2).all()
+        return product_images
+
+
+@router.post("/products/{id}/images", response_model=ProductImageListSchema)
+def add_product_image(
+    id: int,
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+):
+    with session:
+        try:
+            statement = select(Product).where(Product.id == id)
+            product = session.exec(statement).one()
+        except:
+            raise HTTPException(status_code=404, detail="Product ID not found.")
+
+        res = cloudinary.uploader.upload(file.file)
+        url = res.get("url")
+        new_image = ProductImage(product_id=product.id, url=url)
+        session.add(new_image)
+        session.commit()
+        session.refresh(new_image)
+        return new_image

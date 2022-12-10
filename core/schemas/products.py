@@ -8,7 +8,11 @@ class ProductCreateUpdateSchema(BaseModel):
     business_id: int
     name: str
     description: Optional[str]
+    category: str
+    product_no: str
     price: float
+    tax: Optional[int] = None
+    unit: Optional[str] = None
 
 
 class ProductListSchema(BaseModel):
@@ -18,10 +22,17 @@ class ProductListSchema(BaseModel):
     product_no: str
     category: str
     unit: Optional[str]
-    tax: Optional[int]
+    tax: Optional[int] = None
     description: Optional[str]
     price: float
     timestamp: datetime = datetime.now()
 
     class Config:
         orm_mode = True
+
+
+class ProductImageListSchema(BaseModel):
+    id: int
+    url: str
+    product_id: int
+    timestamp: datetime = datetime.now()
