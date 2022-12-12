@@ -12,6 +12,7 @@ from core.config.database import get_session
 from core.models.businesses import Business
 from core.models.products import Product, ProductImage
 from core.schemas.products import (
+    ProductBasicSchema,
     ProductCreateUpdateSchema,
     ProductListSchema,
     ProductImageListSchema,
@@ -142,7 +143,7 @@ def products(
         return product
 
 
-@router.get("/products/{id}/images", response_model=List[ProductImageListSchema])
+@router.get("/products/{id}/images", response_model=ProductBasicSchema)
 def get_product_images(id: int, session: Session = Depends(get_session)):
     with session:
         try:
@@ -151,9 +152,24 @@ def get_product_images(id: int, session: Session = Depends(get_session)):
         except:
             raise HTTPException(status_code=404, detail="Product ID not found.")
 
-        statement_2 = select(ProductImage).where(ProductImage.product_id == product.id)
-        product_images = session.exec(statement_2).all()
-        return product_images
+        product_images = session.exec(
+            select(ProductImage).where(ProductImage.product_id == product.id)
+        ).all()
+
+        data = {
+            "id": product.id,
+            "product_no": product.product_no,
+            "unit": product.unit,
+            "price": product.price,
+            "business_id": product.business_id,
+            "description": product.description,
+            "name": product.name,
+            "category": product.category,
+            "tax": product.tax,
+            "timestamp": product.timestamp,
+            "images": product_images
+        }
+        return data
 
 
 @router.post("/products/{id}/images", response_model=ProductImageListSchema)

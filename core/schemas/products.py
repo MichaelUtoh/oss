@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -36,3 +36,23 @@ class ProductImageListSchema(BaseModel):
     url: str
     product_id: int
     timestamp: datetime = datetime.now()
+
+    class Config:
+        orm_mode = True
+
+
+class ProductBasicSchema(BaseModel):
+    id: int
+    business_id: int
+    name: str
+    product_no: str
+    category: str
+    unit: Optional[str]
+    tax: Optional[int] = None
+    description: Optional[str]
+    price: float
+    timestamp: datetime = datetime.now()
+    images: List[ProductImageListSchema]
+
+    class Config:
+        orm_mode = True
