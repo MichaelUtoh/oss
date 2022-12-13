@@ -167,7 +167,7 @@ def get_product_images(id: int, session: Session = Depends(get_session)):
             "category": product.category,
             "tax": product.tax,
             "timestamp": product.timestamp,
-            "images": product_images
+            "images": product_images,
         }
         return data
 

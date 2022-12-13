@@ -9,7 +9,6 @@ cloudinary.config(
     api_secret=config("CLOUDINARY_API_SECRET"),
 )
 
-
 engine = create_engine(config("DB_URL"), connect_args={"check_same_thread": False})
 
 
