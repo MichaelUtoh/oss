@@ -20,7 +20,7 @@ def start_application():
 
 
 app = start_application()
-app.add_middleware(DBSessionMiddleware, db_url=config("DATABASE_URI"))
+# app.add_middleware(DBSessionMiddleware, db_url=config("DATABASE_URI"))
 app.include_router(accounts.router)
 app.include_router(businesses.router)
 app.include_router(products.router)
