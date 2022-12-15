@@ -11,7 +11,7 @@ class BusinessCreateUpdateSchema(BaseModel):
 
 
 class BusinessListSchema(BaseModel):
-    id: str
+    id: int
     name: str
     address: str
     established: Optional[str] = None
