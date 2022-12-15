@@ -5,24 +5,22 @@ from core.config.database import get_session
 from core.models.products import Product
 
 
-def get_order_info(data, session: Session = Depends(get_session)):
-    with session:
-        try:
-            query = select(Product).where(Product.id == data.product_id)
-            print(query)
-    #         product = session.exec(query).one()
-        except:
-            msg = "Product ID doesn't exist"
-            raise HTTPException(status_code=404, detail=msg)
-    #     print(product)
-
-    # total = product.price
+def get_order_info(order, product):
+    total = (
+        (product.price * order.quantity)
+        + (((product.tax or 0) / 100) * product.price)
+        - order.discount
+        if order.discount_type == "currency"
+        else (product.price * order.quantity)
+        + (((product.tax or 0) / 100) * product.price)
+        - (order.discount / 100 * (product.price * order.quantity))
+    )
     return {
-        "id": data.id,
-        "discount": data.discount,
-        "timestamp": data.timestamp,
-        "product_id": data.product_id,
-        "quantity": data.quantity,
-        "discount_type": data.discount_type,
-        "total": 0,
+        "id": order.id,
+        "timestamp": order.timestamp,
+        "product_id": order.product_id,
+        "quantity": order.quantity,
+        "discount": order.discount,
+        "discount_type": order.discount_type,
+        "total": total,
     }

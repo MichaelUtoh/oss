@@ -116,12 +116,19 @@ def products(
 
 @router.patch("/products/bulk_delete")
 def products(data: IdListSchema, session: Session = Depends(get_session)):
-    for id in data.ids:
-        with session:
-            statement = select(Product).where(Product.id == id)
-            product = session.exec(statement).one()
-            session.delete(product)
-            session.commit()
+    count = 0
+    try:
+        for id in data.ids:
+            with session:
+                statement = select(Product).where(Product.id == id)
+                product = session.exec(statement).one()
+                session.delete(product)
+                session.commit()
+                count += 1
+    except:
+        raise HTTPException(status_code=404, detail="Something went wrong")
+
+    return {"detail": f"{count} Item(s) have been deleted."}
 
 
 @router.put("/products/{id}")
