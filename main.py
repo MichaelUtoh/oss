@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi_sqlalchemy import DBSessionMiddleware
 
 from core.config.database import create_db_and_tables, engine
-from core.routers import accounts, businesses, products
+from core.routers import accounts, businesses, carts, products
 from sqlmodel import SQLModel
 
 
@@ -24,3 +24,4 @@ app.add_middleware(DBSessionMiddleware, db_url=config("DATABASE_URI"))
 app.include_router(accounts.router)
 app.include_router(businesses.router)
 app.include_router(products.router)
+app.include_router(carts.router)

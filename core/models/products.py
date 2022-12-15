@@ -43,7 +43,9 @@ class Cart(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     code: str
     timestamp: Optional[datetime] = datetime.now()
-    orders: List["Order"] = Relationship(back_populates="carts", link_model=OrderCartLink)
+    orders: List["Order"] = Relationship(
+        back_populates="carts", link_model=OrderCartLink
+    )
 
 
 class Order(SQLModel, table=True):

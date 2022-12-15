@@ -60,9 +60,9 @@ def batch_upload(
         raise HTTPException(status_code=404, detail=msg)
 
     csvReader = csv.DictReader(codecs.iterdecode(file.file, "utf-8"))
+    count = 0
     data = {}
     for data in csvReader:
-        print(data)
         with session:
             product = Product(
                 business_id=business_id,
@@ -77,9 +77,10 @@ def batch_upload(
             session.add(product)
             session.commit()
             session.refresh(product)
+            count += 1
 
     file.file.close()
-    return {"detail": "Files uploaded successfully"}
+    return {"detail": f"{count} Files uploaded successfully"}
 
 
 @router.post("/products", response_model=ProductListSchema)
@@ -128,7 +129,7 @@ def products(
     *,
     id: int,
     session: Session = Depends(get_session),
-    product: ProductCreateUpdateSchema
+    product: ProductCreateUpdateSchema,
 ):
     data = Product(**product.dict())
     with session:
@@ -172,10 +173,10 @@ def get_product_images(id: int, session: Session = Depends(get_session)):
         return data
 
 
-@router.post("/products/{id}/images", response_model=ProductImageListSchema)
+@router.post("/products/{id}/images")
 def add_product_image(
     id: int,
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(...),
     session: Session = Depends(get_session),
 ):
     with session:
@@ -185,10 +186,13 @@ def add_product_image(
         except:
             raise HTTPException(status_code=404, detail="Product ID not found.")
 
-        res = cloudinary.uploader.upload(file.file)
-        url = res.get("url")
-        new_image = ProductImage(product_id=product.id, url=url)
-        session.add(new_image)
-        session.commit()
-        session.refresh(new_image)
-        return new_image
+        count = 0
+        for file in files:
+            res = cloudinary.uploader.upload(file.file)
+            url = res.get("url")
+            new_image = ProductImage(product_id=product.id, url=url)
+            session.add(new_image)
+            session.commit()
+            session.refresh(new_image)
+            count += 1
+        return {"detail": f"{count} Files have been uploaded"}
