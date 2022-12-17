@@ -10,7 +10,7 @@ from sqlmodel import select, Session
 from core.config.auth import AuthHandler
 from core.config.database import get_session
 from core.models.businesses import Business
-from core.models.products import Product, ProductImage
+from core.models.products import Product, ProductImage, Order
 from core.schemas.products import (
     ProductBasicSchema,
     ProductCreateUpdateSchema,
@@ -70,7 +70,7 @@ def batch_upload(
                 product_no=data["Product No."],
                 description=data["Description"],
                 category=data["Category"],
-                tax=data["Tax"],
+                tax=data["Tax"] or 0,
                 unit=data["Unit"],
                 price=data["Price"],
             )
@@ -117,16 +117,17 @@ def products(
 @router.patch("/products/bulk_delete")
 def products(data: IdListSchema, session: Session = Depends(get_session)):
     count = 0
-    try:
-        for id in data.ids:
-            with session:
-                statement = select(Product).where(Product.id == id)
-                product = session.exec(statement).one()
-                session.delete(product)
-                session.commit()
-                count += 1
-    except:
-        raise HTTPException(status_code=404, detail="Something went wrong")
+    for id in data.ids:
+        with session:
+            statement = select(Product).where(Product.id == id)
+            product = session.exec(statement).one()
+            order_exists = session.exec(select(Order).where(Order.id == product.id)).one()
+            if order_exists:
+                msg="Product has existing orders associated"
+                raise HTTPException(status_code=404, detail=msg)
+            session.delete(product)
+            session.commit()
+            count += 1
 
     return {"detail": f"{count} Item(s) have been deleted."}
 

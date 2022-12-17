@@ -22,5 +22,6 @@ def get_order_info(order, product):
         "quantity": order.quantity,
         "discount": order.discount,
         "discount_type": order.discount_type,
+        "tax": product.tax,
         "total": total,
     }

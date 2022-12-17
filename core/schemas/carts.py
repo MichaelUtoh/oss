@@ -12,6 +12,8 @@ class OrderListSchema(BaseModel):
     quantity: int
     discount: float
     discount_type: Optional[str] = DiscountTypeEnum.currency
+    tax: int
+    total: int
     timestamp: Optional[datetime] = datetime.now()
 
 

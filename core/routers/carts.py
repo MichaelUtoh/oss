@@ -37,7 +37,6 @@ def create_order(
         try:
             query = select(Product).where(Product.id == order.product_id)
             product = session.exec(query).one()
-            print(product)
         except:
             msg = "Product ID doesn't exist"
             raise HTTPException(status_code=404, detail=msg)
@@ -69,4 +68,4 @@ def delete_order(data: IdListSchema, session: Session = Depends(get_session)):
 @router.get("/cart")
 def fetch_cart(session: Session = Depends(get_session)):
     with session:
-        products = session.exec(select(Order)).all()
+        orders = session.exec(select(Order)).all()
