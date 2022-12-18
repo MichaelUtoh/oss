@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
+import cloudinary
 from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -147,6 +148,13 @@ STATIC_URL = "/static/"
 if not DEBUG:
     STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
     STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+
+cloudinary.config(
+    cloud_name=config("CLOUD_NAME"),
+    api_key=config("CLOUDINARY_API_KEY"),
+    api_secret=config("CLOUDINARY_API_SECRET"),
+)
 
 # MEDIA_URL = "/media/"
 # MEDIA_ROOT = PROJECT_ROOT / "media"

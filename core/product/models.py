@@ -18,7 +18,7 @@ class Product(models.Model):
         choices=ProductCategory.choices,
         default=ProductCategory.RANDOM,
     )
-    image = models.ImageField(upload_to="", null=True)
+    # image = models.ImageField(upload_to="", null=True)
     quantity = models.IntegerField(blank=True, default=1)
     unit = models.CharField(max_length=50, blank=True)
     price = models.DecimalField(max_digits=9, decimal_places=2, default=0)
@@ -34,6 +34,16 @@ class Product(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+
+class ProductImage(models.Model):
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="images"
+    )
+    name = models.CharField(max_length=100, blank=True)
+    url = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
 class ProductFavorite(models.Model):

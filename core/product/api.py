@@ -6,6 +6,8 @@ import pandas as pd
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
+import cloudinary
+import cloudinary.uploader
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from pyqrcode import QRCode
@@ -25,6 +27,7 @@ from rest_framework.response import Response
 
 from core.accounts.models import User
 from core.business.models import Business
+from core.product.models import ProductImage
 from core.config.choices import UserType
 from core.config.permissions import (
     AdminOnlyPermission,
@@ -40,6 +43,7 @@ from core.product.serializers import (
     OrderItemListSerializer,
     ProductBasicSerializer,
     ProductCreateUpdateSerializer,
+    ProductImageListSerializer,
     ProductListSerializer,
 )
 
@@ -213,9 +217,63 @@ class ProductViewSet(
 class ProductBasicViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = Product.objects.all().order_by("-name")
     serializer_class = ProductListSerializer
-    permission_classes = [CustomerPermission]
+    permission_classes = [AllowAny]
     filter_backends = [filters.SearchFilter]
     search_fields = ["name", "category", "description" "product_no"]
+
+
+class ProductImageViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+    parser_classes = [MultiPartParser]
+    permission_classes = [BusinessOwnerPermission]
+    queryset = ProductImage.objects.all().select_related("product")
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return ProductImageListSerializer
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                name="file",
+                in_=openapi.IN_FORM,
+                type=openapi.TYPE_FILE,
+                required=True,
+                description="Image",
+            )
+        ],
+        request_body=None,
+        responses={status.HTTP_200_OK: ProductImageListSerializer},
+    )
+    def create(self, request, *args, **kwargs):
+        file = request.FILES.get("file")
+
+        if ProductImage.objects.filter(name=str(file)).exists():
+            msg = "Image with the same name already exists"
+            raise serializers.ValidationError({"detail": msg})
+
+        product = get_object_or_404(Product, pk=self.kwargs["product_pk"])
+        res = cloudinary.uploader.upload(file.file)
+        url = res.get("url")
+
+        image = ProductImage(product=product, name=str(file), url=url)
+        image.save()
+        data = ProductImageListSerializer(image).data
+        return Response(data=data, status=status.HTTP_200_OK)
+
+
+class ProductImageListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    permission_classes = [AllowAny]
+    queryset = ProductImage.objects.all().select_related("product")
+    serializer_class = ProductImageListSerializer
+
+    @swagger_auto_schema(
+        request_body=None, responses={status.HTTP_200_OK: ProductImageListSerializer}
+    )
+    def list(self, request, *args, **kwargs):
+        product = get_object_or_404(Product, pk=self.kwargs["product_pk"])
+        images_qs = ProductImage.objects.filter(product=product)
+        data = self.get_serializer(images_qs, many=True).data
+        return Response(data=data, status=status.HTTP_200_OK)
 
 
 class OrderItemsViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):

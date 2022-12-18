@@ -7,7 +7,13 @@ from core.accounts.serializers import UserDetailsSerializer
 from core.business.serializers import BusinessBasicSerializer
 from core.config.serializers import IdListSerializer
 from core.config.utils import generate_code
-from core.product.models import Cart, OrderItem, Product
+from core.product.models import Cart, OrderItem, Product, ProductImage
+
+
+class ProductImageListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ["id", "name", "url", "created_at"]
 
 
 class ProductQtySerializer(serializers.Serializer):
@@ -16,6 +22,7 @@ class ProductQtySerializer(serializers.Serializer):
 
 class ProductListSerializer(serializers.ModelSerializer):
     business = BusinessBasicSerializer()
+    images = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -29,7 +36,13 @@ class ProductListSerializer(serializers.ModelSerializer):
             "price",
             "tax",
             "business",
+            "images",
         ]
+
+    def get_images(self, obj):
+        return ProductImage.objects.filter(product=obj).values(
+            "id", "name", "url", "created_at"
+        )
 
 
 class ProductBasicSerializer(serializers.ModelSerializer):
@@ -151,7 +164,7 @@ class CartListSerializer(serializers.Serializer):
         #         quantity="quantity"
         #     ))
         #     values.append(item.json_object)
-        
+
         return values
 
     def get_total(self, obj):
@@ -178,10 +191,10 @@ class CartCreateUpdateSerializer(serializers.ModelSerializer):
             for i in self.validated_data["items"]:
                 if not i.customer == self.context["customer"]:
                     raise serializers.ValidationError({"detail": mssg})
-            
+
             cart = Cart.objects.create(
                 code=generate_code(),
-                total=sum([i.get_item_price() for i in self.validated_data["items"]])
+                total=sum([i.get_item_price() for i in self.validated_data["items"]]),
             )
             for i in self.validated_data["items"]:
                 cart.items.add(i.id)

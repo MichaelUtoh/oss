@@ -15,6 +15,8 @@ from core.product.api import (
     CartViewSet,
     OrderItemsViewSet,
     ProductBasicViewSet,
+    ProductImageViewSet,
+    ProductImageListViewSet,
     ProductViewSet,
     ProductFavoriteViewSet,
 )
@@ -49,6 +51,16 @@ router.register(
 )
 router.register(r"marketing", EmailViewSet, basename="marketing")
 router.register(r"products", ProductBasicViewSet, basename="products")
+router.register(
+    r"products/(?P<product_pk>[\d]+)/add_image",
+    ProductImageViewSet,
+    basename="add_image",
+)
+router.register(
+    r"products/(?P<product_pk>[\d]+)/images",
+    ProductImageListViewSet,
+    basename="product_images",
+)
 router.register(
     r"products/(?P<product_pk>[\d]+)/add_to_cart",
     OrderItemsViewSet,
