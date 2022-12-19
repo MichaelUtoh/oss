@@ -34,8 +34,9 @@ from core.config.permissions import (
     BusinessOwnerPermission,
     CustomerPermission,
 )
+from core.cart.models import Cart, OrderItem
 from core.config.schema import get_auto_schema_class_by_tags
-from core.product.models import Cart, OrderItem, Product, ProductFavorite
+from core.product.models import Product, ProductFavorite
 from core.product.serializers import (
     CartCreateUpdateSerializer,
     CartListSerializer,

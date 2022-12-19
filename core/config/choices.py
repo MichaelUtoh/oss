@@ -51,3 +51,8 @@ class ProductCategory(models.TextChoices):
     GROCERY = "grocery", "Grocery"
     COMPUTERS = "computers", "Computers"
     BOOKS = "books and literature", "Books & Literature"
+
+
+class DiscountType(models.TextChoices):
+    CURRENCY = "currency", "Currency"
+    PERCENTAGE = "percentage", "Percentage"

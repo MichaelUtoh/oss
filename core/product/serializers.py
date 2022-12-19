@@ -7,7 +7,8 @@ from core.accounts.serializers import UserDetailsSerializer
 from core.business.serializers import BusinessBasicSerializer
 from core.config.serializers import IdListSerializer
 from core.config.utils import generate_code
-from core.product.models import Cart, OrderItem, Product, ProductImage
+from core.product.models import Product, ProductImage
+from core.cart.models import Cart, CartItem, Order, OrderItem
 
 
 class ProductImageListSerializer(serializers.ModelSerializer):
