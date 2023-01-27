@@ -9,7 +9,7 @@ from drf_yasg import openapi
 from rest_framework import permissions, routers
 
 from core.accounts.api import UserDetailViewSet, UserLoginAPIView, UserRegisterAPIView
-from core.cart.api import CartViewSet, CartItemViewSet
+from core.cart.api import CartViewSet
 from core.business.api import BusinessViewSet, CouponViewSet
 from core.marketing.api import EmailViewSet
 from core.product.api import (
@@ -47,7 +47,6 @@ router.register(
     basename="coupons",
 )
 router.register(r"cart", CartViewSet, basename="cart")
-router.register(r"orders", CartItemViewSet, basename="orders")
 router.register(r"marketing", EmailViewSet, basename="marketing")
 router.register(r"products", ProductBasicViewSet, basename="products")
 router.register(

@@ -264,7 +264,7 @@ class ProductBasicViewSet(
             data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
-        cart_info = serializer.save()
+        serializer.save()
         return Response(status=status.HTTP_201_CREATED)
 
     @swagger_auto_schema(

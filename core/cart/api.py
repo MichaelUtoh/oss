@@ -3,22 +3,19 @@ from django.shortcuts import get_object_or_404
 
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from core.cart.models import Cart, CartItem
 from core.cart.serializers import (
-    CartCreateUpdateSerializer,
     CartItemCreateUpdateSerializer,
-    CartItemListSerializer,
     CartListSerializer,
 )
 from core.config.permissions import (
-    AdminOnlyPermission,
-    BusinessOwnerPermission,
     CustomerPermission,
 )
 from core.config.schema import get_auto_schema_class_by_tags
-from core.product.models import Product, ProductFavorite
+from core.config.serializers import IdListSerializer
 
 User = get_user_model()
 
@@ -31,6 +28,8 @@ class CartViewSet(viewsets.GenericViewSet):
     def get_serializer_class(self):
         if self.action == "list":
             return CartListSerializer
+        if self.action == "delete_order":
+            return IdListSerializer
 
     @swagger_auto_schema(
         request_body=None, responses={status.HTTP_200_OK: CartListSerializer}
@@ -45,19 +44,13 @@ class CartViewSet(viewsets.GenericViewSet):
         data = self.get_serializer(cart).data
         return Response(data=data, status=status.HTTP_200_OK)
 
-
-class CartItemViewSet(viewsets.GenericViewSet):
-    queryset = CartItem.objects.all().prefetch_related("cart")
-    permission_classes = [CustomerPermission]
-
-    def get_serializer_class(self):
-        return CartItemCreateUpdateSerializer
-
-    @swagger_auto_schema(request_body=None, responses=None)
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(
-            data=request.data, context={"request": request}
-        )
+    @swagger_auto_schema(
+        request_body=IdListSerializer, responses={status.HTTP_204_NO_CONTENT: None}
+    )
+    @action(detail=False, methods=["patch"])
+    def delete_order(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(status=status.HTTP_201_CREATED)
+        CartItem.objects.filter(pk__in=serializer.validated_data["ids"]).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+

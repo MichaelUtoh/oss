@@ -60,34 +60,6 @@ class CartListSerializer(serializers.Serializer):
         return subtotal
 
 
-class CartCreateUpdateSerializer(serializers.ModelSerializer):
-    items = IdListSerializer
-
-    class Meta:
-        model = Cart
-        fields = ["items"]
-
-    def save(self):
-        with transaction.atomic():
-            mssg = "Add products to cart before proceeding"
-            cart_exists = Cart.objects.filter(items__customer=self.context["customer"])
-            if cart_exists:
-                raise serializers.ValidationError({"detail": "You have a created Cart"})
-
-            print()
-            for i in self.validated_data["items"]:
-                if not i.customer == self.context["customer"]:
-                    raise serializers.ValidationError({"detail": mssg})
-
-            cart = Cart.objects.create(
-                code=generate_code(),
-                total=sum([i.get_item_price() for i in self.validated_data["items"]]),
-            )
-            for i in self.validated_data["items"]:
-                cart.items.add(i.id)
-            return cart
-
-
 class CartItemListSerializer(serializers.ModelSerializer):
     class Meta:
         model = CartItem

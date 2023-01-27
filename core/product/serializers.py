@@ -3,12 +3,8 @@ from django.db.models.functions import JSONObject
 
 from rest_framework import serializers
 
-from core.accounts.serializers import UserDetailsSerializer
 from core.business.serializers import BusinessBasicSerializer
-from core.config.serializers import IdListSerializer
-from core.config.utils import generate_code
 from core.product.models import Product, ProductFavorite, ProductImage
-from core.cart.models import Cart, CartItem
 
 
 class ProductImageListSerializer(serializers.ModelSerializer):
