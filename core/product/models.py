@@ -2,7 +2,7 @@ from django.db import models
 from django.conf import settings
 
 from core.business.models import Business
-from core.config.choices import DiscountType, ProductCategory
+from core.config.choices import DiscountType, ProductCategory, ProductStatus
 
 
 class Discount(models.Model):
@@ -26,18 +26,20 @@ class Product(models.Model):
         default=ProductCategory.RANDOM,
     )
     discount = models.ForeignKey(Discount, on_delete=models.SET_NULL, null=True)
-    quantity = models.IntegerField(blank=True, default=1)
     unit = models.CharField(max_length=50, blank=True)
-    price = models.DecimalField(max_digits=9, decimal_places=2, default=0)
+    price = models.FloatField(default=0)
     tax = models.DecimalField(max_digits=4, decimal_places=2, default=0)
+    status = models.CharField(
+        max_length=12, choices=ProductStatus.choices, default=ProductStatus.AVAILABLE
+    )
+    favourite = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name="user_favourite"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ["name", "product_no"]
-
-    def calculate_total(self):
-        return self.price * self.quantity
 
     def __str__(self) -> str:
         return self.name

@@ -53,6 +53,17 @@ class ProductCategory(models.TextChoices):
     BOOKS = "books and literature", "Books & Literature"
 
 
+class ProductStatus(models.TextChoices):
+    AVAILABLE = "available", "Available"
+    OUT_OF_STOCK = "out of stock", "Out of Stock"
+
+
 class DiscountType(models.TextChoices):
     CURRENCY = "currency", "Currency"
     PERCENTAGE = "percentage", "Percentage"
+
+
+class CartStatus(models.TextChoices):
+    PAID = "paid", "Paid"
+    PROCESSING = "processing", "Processing"
+    ARCHIVED = "archived", "Archived"

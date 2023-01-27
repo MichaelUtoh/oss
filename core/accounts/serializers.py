@@ -116,8 +116,14 @@ class UserBasicSerializer(serializers.ModelSerializer):
         ]
 
     def update(self):
+        user = self.context["request"].user
+        account = get_object_or_404(User, pk=self.context["pk"])
+
         if self.validated_data["type"] == UserType.ADMIN:
             raise ValidationError({"detail": "Kindly contact admin."})
+
+        if not user.email == account.email:
+            raise ValidationError({"detail": "Not allowed"})
 
         user = User.objects.filter(pk=self.context["pk"])
         user.update(**self.validated_data)

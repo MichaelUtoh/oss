@@ -9,14 +9,12 @@ from drf_yasg import openapi
 from rest_framework import permissions, routers
 
 from core.accounts.api import UserDetailViewSet, UserLoginAPIView, UserRegisterAPIView
+from core.cart.api import CartViewSet, CartItemViewSet
 from core.business.api import BusinessViewSet, CouponViewSet
 from core.marketing.api import EmailViewSet
 from core.product.api import (
-    CartViewSet,
-    OrderItemsViewSet,
     ProductBasicViewSet,
     ProductImageViewSet,
-    ProductImageListViewSet,
     ProductViewSet,
     ProductFavoriteViewSet,
 )
@@ -37,7 +35,6 @@ schema_view = get_schema_view(
 
 router = routers.SimpleRouter(trailing_slash=False)
 router.register(r"auth/users", UserDetailViewSet, basename="users")
-router.register(r"auth/users/(?P<user_pk>[\d]+)/cart", CartViewSet, basename="cart")
 router.register(r"businesses", BusinessViewSet, basename="shops")
 router.register(
     r"businesses/(?P<business_pk>[\d]+)/products",
@@ -45,34 +42,25 @@ router.register(
     basename="products",
 )
 router.register(
-    r"businesses/(?P<business_pk>[\d]+)/coupons",
+    r"businesses/(?P<id>[\d]+)/coupons",
     CouponViewSet,
     basename="coupons",
 )
+router.register(r"cart", CartViewSet, basename="cart")
+router.register(r"orders", CartItemViewSet, basename="orders")
 router.register(r"marketing", EmailViewSet, basename="marketing")
 router.register(r"products", ProductBasicViewSet, basename="products")
 router.register(
-    r"products/(?P<product_pk>[\d]+)/add_image",
+    r"products/(?P<id>[\d]+)/images",
     ProductImageViewSet,
     basename="add_image",
 )
 router.register(
-    r"products/(?P<product_pk>[\d]+)/images",
-    ProductImageListViewSet,
-    basename="product_images",
-)
-router.register(
-    r"products/(?P<product_pk>[\d]+)/add_to_cart",
-    OrderItemsViewSet,
-    basename="orders",
-)
-router.register(
-    r"products/(?P<product_pk>[\d]+)/toggle_favorite",
+    r"products/(?P<id>[\d]+)/toggle_favorite",
     ProductFavoriteViewSet,
     basename="favorite",
 )
 urlpatterns = router.urls
-
 
 urlpatterns + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

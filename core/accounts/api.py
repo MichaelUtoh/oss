@@ -3,6 +3,7 @@ from django.conf import settings
 from datetime import timedelta
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, serializers, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.generics import GenericAPIView
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
@@ -24,7 +25,7 @@ from core.config.services import filter_http_method_names
 
 class UserDetailViewSet(
     mixins.UpdateModelMixin,
-    mixins.RetrieveModelMixin,
+    # mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
 ):
     queryset = User.objects.all()
@@ -33,12 +34,21 @@ class UserDetailViewSet(
     def get_serializer_class(self):
         if self.action == "update":
             return UserBasicSerializer
-        if self.action in ["list", "retrieve"]:
+        if self.action in ["details", "list", "retrieve"]:
             return UserDetailsSerializer
+
+    @swagger_auto_schema(
+        request_body=None, responses={status.HTTP_200_OK: UserDetailsSerializer}
+    )
+    @action(detail=False, methods=["get"])
+    def details(self, request, *args, **kwargs):
+        data = self.get_serializer(request.user).data
+        return Response(data=data, status=status.HTTP_200_OK)
 
     def update(self, request, pk=None, **kwargs):
         serializer = self.get_serializer(
-            data=request.data, context={"pk": self.kwargs["pk"]}
+            data=request.data,
+            context={"pk": self.kwargs["pk"], "request": self.request},
         )
         serializer.is_valid(raise_exception=True)
         serializer.update()

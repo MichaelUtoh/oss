@@ -1,3 +1,4 @@
+import pandas as pd
 from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -70,6 +71,8 @@ class BusinessViewSet(
             raise serializers.ValidationError({"detail": "Not authorized"})
 
         business_qs = self.get_queryset()
+        businesses = pd.DataFrame(business_qs.values())
+        print(businesses)
 
         if request.user.type == UserType.SHOP_OWNER:
             business_qs = business_qs.filter(owner=self.request.user)

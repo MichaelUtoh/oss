@@ -1,10 +1,9 @@
 import csv
 import io
 import math
-import pandas as pd
 
 from django.db.models import Q
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, get_list_or_404
 
 import cloudinary
 import cloudinary.uploader
@@ -13,7 +12,6 @@ from drf_yasg.utils import swagger_auto_schema
 from pyqrcode import QRCode
 from rest_framework import (
     filters,
-    generics,
     mixins,
     parsers,
     serializers,
@@ -25,25 +23,24 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from core.accounts.models import User
+from core.cart.models import Cart, CartItem
+from core.config.choices import UserType
 from core.business.models import Business
 from core.product.models import ProductImage
-from core.config.choices import UserType
 from core.config.permissions import (
     AdminOnlyPermission,
     BusinessOwnerPermission,
     CustomerPermission,
 )
-from core.cart.models import Cart, OrderItem
+from core.accounts.models import User
+from core.cart.serializers import CartItemCreateUpdateSerializer, CartListSerializer
 from core.config.schema import get_auto_schema_class_by_tags
+from core.config.utils import generate_code
 from core.product.models import Product, ProductFavorite
 from core.product.serializers import (
-    CartCreateUpdateSerializer,
-    CartListSerializer,
-    OrderItemCreateSerializer,
-    OrderItemListSerializer,
     ProductBasicSerializer,
     ProductCreateUpdateSerializer,
+    ProductFavoriteListSerializer,
     ProductImageListSerializer,
     ProductListSerializer,
 )
@@ -89,12 +86,7 @@ class ProductViewSet(
     )
     def batch(self, request, *args, **kwargs):
         file = request.FILES.get("file")
-
-        try:
-            business = Business.objects.filter(pk=self.kwargs["business_pk"]).first()
-        except Business.DoesNotExist:
-            msg = "Not found"
-            raise serializers.ValidationError({"detail": msg})
+        business = get_object_or_404(Business, pk=self.kwargs["business_pk"])
 
         if not file.name.endswith(".csv"):
             msg = "Wrong format! Make sure its a CSV(.csv) file."
@@ -118,10 +110,9 @@ class ProductViewSet(
                     "product_no": data[1],
                     "description": data[2],
                     "category": data[3],
-                    "quantity": data[4],
-                    "unit": data[5],
-                    "price": data[6],
-                    "tax": data[7] or 0,
+                    "unit": data[4],
+                    "price": data[5],
+                    "tax": data[6] or 0,
                 }
             )
 
@@ -215,17 +206,92 @@ class ProductViewSet(
         return Response(data=data)
 
 
-class ProductBasicViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
-    queryset = Product.objects.all().order_by("-name")
+class ProductFavoriteViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+    queryset = ProductFavorite.objects.all()
+    swagger_schema = get_auto_schema_class_by_tags(["products"])
+    permission_classes = [CustomerPermission]
+
+    @swagger_auto_schema(
+        request_body=None,
+        responses={status.HTTP_200_OK: None},
+    )
+    def create(self, request, *args, **kwargs):
+        product = get_object_or_404(Product, pk=self.kwargs["id"])
+
+        if ProductFavorite.objects.filter(user=request.user, product=product).exists():
+            ProductFavorite.objects.filter(user=request.user, product=product).delete()
+            return Response(status=status.HTTP_200_OK)
+
+        ProductFavorite.objects.create(user=request.user, product=product)
+        return Response(status=status.HTTP_200_OK)
+
+
+class ProductBasicViewSet(
+    mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
+):
+    queryset = (
+        Product.objects.all().prefetch_related("business", "discount").order_by("-name")
+    )
     serializer_class = ProductListSerializer
     permission_classes = [AllowAny]
     filter_backends = [filters.SearchFilter]
     search_fields = ["name", "category", "description" "product_no"]
 
+    def get_serializer_class(self):
+        if self.action == "add_to_cart":
+            return CartItemCreateUpdateSerializer
+        if self.action == "list":
+            return ProductListSerializer
+
+    @swagger_auto_schema(
+        request_body=None, responses={status.HTTP_200_OK: ProductListSerializer}
+    )
+    @action(detail=False, methods=["get"])
+    def favorites(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            msg = "Sign in to create or view your favorite products"
+            raise serializers.ValidationError({"detail": msg})
+
+        items = get_list_or_404(ProductFavorite, user=request.user)
+        data = ProductFavoriteListSerializer(items, many=True).data
+
+        return Response(data=data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(request_body=CartItemCreateUpdateSerializer)
+    @action(detail=False, methods=["post"])
+    def add_to_cart(self, request, *args, **kwargs):
+        serializer = self.get_serializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        cart_info = serializer.save()
+        return Response(status=status.HTTP_201_CREATED)
+
+    @swagger_auto_schema(
+        request_body=None, responses={status.HTTP_200_OK: ProductListSerializer}
+    )
+    def list(self, request, *args, **kwargs):
+        search_q = request.GET.get("search")
+        qs = (
+            (
+                self.get_queryset().filter(
+                    Q(name__icontains=search_q)
+                    | Q(product_no__icontains=search_q)
+                    | Q(description__icontains=search_q)
+                    | Q(category__icontains=search_q)
+                )
+            )
+            if search_q
+            else self.get_queryset()
+        )
+
+        data = self.get_serializer(qs, many=True).data
+        return Response(data=data, status=status.HTTP_200_OK)
+
 
 class ProductImageViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     parser_classes = [MultiPartParser]
-    permission_classes = [BusinessOwnerPermission]
+    permission_classes = [AllowAny]
     queryset = ProductImage.objects.all().select_related("product")
 
     def get_serializer_class(self):
@@ -246,13 +312,16 @@ class ProductImageViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         responses={status.HTTP_200_OK: ProductImageListSerializer},
     )
     def create(self, request, *args, **kwargs):
+        user = request.user
         file = request.FILES.get("file")
+        product = get_object_or_404(Product, pk=self.kwargs["id"])
+        if not product.business.owner == user:
+            raise serializers.ValidationError({"detail": "Not allowed"})
 
         if ProductImage.objects.filter(name=str(file)).exists():
             msg = "Image with the same name already exists"
             raise serializers.ValidationError({"detail": msg})
 
-        product = get_object_or_404(Product, pk=self.kwargs["product_pk"])
         res = cloudinary.uploader.upload(file.file)
         url = res.get("url")
 
@@ -260,99 +329,3 @@ class ProductImageViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         image.save()
         data = ProductImageListSerializer(image).data
         return Response(data=data, status=status.HTTP_200_OK)
-
-
-class ProductImageListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
-    permission_classes = [AllowAny]
-    queryset = ProductImage.objects.all().select_related("product")
-    serializer_class = ProductImageListSerializer
-
-    @swagger_auto_schema(
-        request_body=None, responses={status.HTTP_200_OK: ProductImageListSerializer}
-    )
-    def list(self, request, *args, **kwargs):
-        product = get_object_or_404(Product, pk=self.kwargs["product_pk"])
-        images_qs = ProductImage.objects.filter(product=product)
-        data = self.get_serializer(images_qs, many=True).data
-        return Response(data=data, status=status.HTTP_200_OK)
-
-
-class OrderItemsViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
-    queryset = OrderItem.objects.all()
-    swagger_schema = get_auto_schema_class_by_tags(["products"])
-    permission_classes = [CustomerPermission]
-
-    def get_serializer_class(self):
-        if self.action == "create":
-            return OrderItemCreateSerializer
-
-    @swagger_auto_schema(
-        request_body=OrderItemCreateSerializer,
-        responses={status.HTTP_200_OK: OrderItemListSerializer},
-    )
-    def create(self, request, *args, **kwargs):
-        customer, product = request.user, get_object_or_404(
-            Product, pk=self.kwargs["product_pk"]
-        )
-        serializer = self.get_serializer(
-            data=request.data, context={"customer": customer, "product": product}
-        )
-        serializer.is_valid(raise_exception=True)
-        order_item = serializer.save()
-        data = self.get_serializer(instance=order_item).data
-        return Response(data=data)
-
-
-class ProductFavoriteViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
-    queryset = ProductFavorite.objects.all()
-    swagger_schema = get_auto_schema_class_by_tags(["products"])
-    permission_classes = [CustomerPermission]
-
-    @swagger_auto_schema(
-        request_body=None,
-        responses={status.HTTP_200_OK: None},
-    )
-    def create(self, request, *args, **kwargs):
-        product = get_object_or_404(Product, pk=self.kwargs["product_pk"])
-
-        if ProductFavorite.objects.filter(user=request.user, product=product).exists():
-            ProductFavorite.objects.filter(user=request.user, product=product).delete()
-            return Response(status=status.HTTP_200_OK)
-
-        ProductFavorite.objects.create(user=request.user, product=product)
-        return Response(status=status.HTTP_200_OK)
-
-
-class CartViewSet(viewsets.GenericViewSet):
-    queryset = Cart.objects.all()
-    swagger_schema = get_auto_schema_class_by_tags(["cart"])
-
-    def get_serializer_class(self):
-        if self.action == "create" or self.action == "update":
-            return CartCreateUpdateSerializer
-        if self.action == "list":
-            return CartListSerializer
-
-    @swagger_auto_schema(
-        request_body=None, responses={status.HTTP_200_OK: CartListSerializer}
-    )
-    def list(self, request, *args, **kwargs):
-        user = get_object_or_404(User, pk=self.kwargs["user_pk"])
-        serializer = self.get_serializer(data=request.data, context={"customer": user})
-        serializer.is_valid(raise_exception=True)
-        # cart = Cart.objects.filter(items__customer=user)
-        # print(cart)
-        # data = self.get_serializer(cart).data
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
-
-    @swagger_auto_schema(
-        request_body=CartCreateUpdateSerializer,
-        responses={status.HTTP_201_CREATED: CartListSerializer},
-    )
-    def create(self, request, *args, **kwargs):
-        user = request.user
-        serializer = self.get_serializer(data=request.data, context={"customer": user})
-        serializer.is_valid(raise_exception=True)
-        cart = serializer.save()
-        data = CartListSerializer(cart).data
-        return Response(data=data, status=status.HTTP_201_CREATED)
