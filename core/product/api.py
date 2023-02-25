@@ -56,14 +56,14 @@ class ProductViewSet(
     swagger_schema = get_auto_schema_class_by_tags(["businesses"])
     permission_classes = [BusinessOwnerPermission | AdminOnlyPermission]
 
-    def get_business(self):
-        return Business.objects.filter(pk=self.kwargs["business_pk"])
-
     def get_serializer_class(self):
         if self.action in ["create", "update"]:
             return ProductCreateUpdateSerializer
         if self.action in ["list", "retrieve"]:
             return ProductBasicSerializer
+
+    def get_business(self):
+        return Business.objects.filter(pk=self.kwargs["business_pk"])
 
     @swagger_auto_schema(
         manual_parameters=[
@@ -170,7 +170,9 @@ class ProductViewSet(
         limit = int(request.GET.get("limit", 100))
         offset = (page - 1) * limit if page > 1 else 0
         search = request.GET.get("search")
-        products = self.get_queryset().filter(business__owner=request.user)
+        products = self.get_queryset().filter(
+            business__owner=request.user, business_id=self.kwargs["business_pk"]
+        )
 
         if search:
             products = products.filter(
