@@ -48,10 +48,10 @@ INSTALLED_APPS = [
     "rest_framework",
     # Local
     "core.accounts",
+    "core.business",
     "core.cart",
     "core.config",
     "core.product",
-    "core.business",
 ]
 
 MIDDLEWARE = [
@@ -95,9 +95,9 @@ COINBASE_COMMERCE_API_KEY = config("COINBASE_COMMERCE_API_KEY")
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": config("DB_NAME", ""),
-        "USER": config("DB_USER", ""),
-        "PASSWORD": config("DB_PASSWORD", ""),
+        "NAME": config("DB_NAME", "oss"),
+        "USER": config("DB_USER", "oss_user"),
+        "PASSWORD": config("DB_PASSWORD", "pass1234"),
         "HOST": config("HOST", "localhost"),
         "PORT": config("POST", "5432"),
     }
@@ -139,6 +139,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
 STATIC_URL = "/static/"
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 if not DEBUG:
     STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
@@ -183,3 +185,12 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PAGINATION_CLASS": "core.config.pagination.StandardResultSetPagination",
 }
+
+
+GOOGLE_MAP_API_KEY = config("GOOGLE_MAP_API_KEY")
+COINBASE_COMMERCE_API_KEY = config("COINBASE_COMMERCE_API_KEY")
+CLOUD_NAME = config("CLOUD_NAME")
+CLOUDINARY_API_KEY = config("CLOUDINARY_API_KEY")
+CLOUDINARY_API_SECRET = config("CLOUDINARY_API_SECRET")
+PAYSTACK_SECRET_KEY = config("PAYSTACK_SECRET_KEY")
+PAYSTACK_PUBLIC_KEY = config("PAYSTACK_PUBLIC_KEY")

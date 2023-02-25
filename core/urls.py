@@ -10,6 +10,7 @@ from rest_framework import permissions, routers
 
 from core.accounts.api import UserDetailViewSet, UserLoginAPIView, UserRegisterAPIView
 from core.cart.api import CartViewSet
+# from core.config.api import WebHookViewSet
 from core.business.api import BusinessViewSet, CouponViewSet
 from core.marketing.api import EmailViewSet
 from core.product.api import (
@@ -34,6 +35,7 @@ schema_view = get_schema_view(
 )
 
 router = routers.SimpleRouter(trailing_slash=False)
+# router.register(r"webhook", WebHookViewSet, basename="paystack_webhook")
 router.register(r"auth/users", UserDetailViewSet, basename="users")
 router.register(r"businesses", BusinessViewSet, basename="shops")
 router.register(

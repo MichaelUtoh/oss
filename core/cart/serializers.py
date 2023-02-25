@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.forms.models import model_to_dict
 from django.shortcuts import get_object_or_404
 
 from rest_framework import serializers
@@ -8,10 +7,9 @@ from rest_framework import serializers
 from core.accounts.serializers import UserDetailsSerializer
 from core.cart.models import Cart, CartItem
 from core.config.choices import UserType
-from core.config.serializers import IdListSerializer
 from core.config.utils import generate_code
 from core.product.models import Product
-from core.product.serializers import ProductInCartSerializer
+
 
 User = get_user_model()
 
@@ -56,8 +54,9 @@ class CartListSerializer(serializers.Serializer):
         return data
 
     def get_subtotal(self, obj):
-        subtotal = sum([ordx.calculate_item_price() for ordx in obj.orders.all()])
-        return subtotal
+        obj.total = sum([ordx.calculate_item_price() for ordx in obj.orders.all()])
+        obj.save(update_fields=["total"])
+        return obj.total
 
 
 class CartItemListSerializer(serializers.ModelSerializer):
